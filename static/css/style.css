@@ -1,0 +1,118 @@
+/* MSPMS - Motorcycle Spare Parts Management System
+   Developed by Venkatesh K, iPEC Solutions, Bangalore */
+:root{
+  --navy:#0A1F44; --royal:#0B3D91; --blue:#1E4FB5; --panel:#EAF2FB; --bg:#F4F8FD;
+  --ink:#16233b; --muted:#6b7a93; --line:#dbe5f3; --ok:#12805c; --warn:#b7791f; --bad:#c0392b;
+  --radius:14px; --shadow:0 6px 22px rgba(11,61,145,.08);
+  --bs-primary:#1E4FB5; --bs-primary-rgb:30,79,181;
+  --bs-body-font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+body{background:var(--bg);color:var(--ink);font-size:.93rem}
+a{color:var(--blue)} a:hover{color:var(--royal)}
+.btn-primary{--bs-btn-bg:var(--blue);--bs-btn-border-color:var(--blue);--bs-btn-hover-bg:var(--royal);--bs-btn-hover-border-color:var(--royal);--bs-btn-active-bg:var(--royal);--bs-btn-disabled-bg:var(--blue)}
+.btn-outline-primary{--bs-btn-color:var(--blue);--bs-btn-border-color:var(--blue);--bs-btn-hover-bg:var(--blue);--bs-btn-hover-border-color:var(--blue)}
+.form-control:focus,.form-select:focus{border-color:var(--blue);box-shadow:0 0 0 .2rem rgba(30,79,181,.18)}
+.btn:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ---------- layout ---------- */
+.sidebar{position:fixed;inset:0 auto 0 0;width:250px;background:linear-gradient(180deg,var(--navy) 0%,#0c2552 100%);color:#c9d6ee;z-index:1040;display:flex;flex-direction:column;transition:transform .25s ease}
+.sidebar .brand{display:flex;gap:.75rem;align-items:center;padding:1.15rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);color:#fff}
+.sidebar .brand i{font-size:1.7rem;color:#6ea8ff}
+.sidebar .brand b{display:block;letter-spacing:.5px;font-size:1.05rem;line-height:1.1}
+.sidebar .brand small{color:#8fa6d1;font-size:.72rem}
+.sidebar nav{padding:.75rem;overflow-y:auto;flex:1}
+.sidebar nav a{display:flex;align-items:center;gap:.8rem;padding:.62rem .9rem;border-radius:10px;color:#c9d6ee;text-decoration:none;margin-bottom:2px;font-weight:500}
+.sidebar nav a i{font-size:1.1rem;width:1.3rem;text-align:center}
+.sidebar nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+.sidebar nav a.active{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(30,79,181,.45)}
+.sidebar .side-foot{padding:.9rem 1.25rem;font-size:.72rem;color:#7f95c0;border-top:1px solid rgba(255,255,255,.08)}
+.main{margin-left:250px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:1020;background:#fff;border-bottom:1px solid var(--line);padding:.7rem 1.5rem;display:flex;align-items:center;gap:1rem}
+.page-title{font-size:1.2rem;font-weight:700;margin:0;color:var(--royal);white-space:nowrap}
+.gsearch{position:relative;flex:1;max-width:460px;margin-left:auto}
+.gsearch input{border-radius:30px;padding-left:2.4rem;background:var(--panel);border-color:transparent}
+.gsearch>i{position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--muted)}
+.gsearch .results{position:absolute;top:110%;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:none;z-index:1030;overflow:hidden}
+.gsearch .results a{display:flex;justify-content:space-between;gap:.5rem;padding:.55rem .9rem;color:var(--ink);text-decoration:none;border-bottom:1px solid #f0f4fa}
+.gsearch .results a:hover{background:var(--panel)}
+.bell{position:relative;color:var(--ink);font-size:1.25rem}
+.bell .badge{position:absolute;top:-6px;right:-9px;font-size:.62rem}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--royal);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+.content{padding:1.5rem;flex:1}
+.app-footer{padding:.9rem 1.5rem;text-align:center;color:var(--muted);font-size:.8rem;border-top:1px solid var(--line);background:#fff}
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,31,68,.5);z-index:1035}
+
+/* ---------- cards ---------- */
+.card{border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-header{background:#fff;border-bottom:1px solid var(--line);font-weight:700;border-radius:var(--radius) var(--radius) 0 0!important;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.kpi{display:flex;align-items:center;gap:1rem;padding:1.15rem 1.25rem}
+.kpi .ico{width:52px;height:52px;border-radius:14px;background:var(--panel);color:var(--royal);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex:none}
+.kpi .val{font-size:1.55rem;font-weight:800;line-height:1.1;color:var(--royal)}
+.kpi .lbl{color:var(--muted);font-weight:600;font-size:.82rem}
+.kpi.alert-kpi .ico{background:#fdecea;color:var(--bad)} .kpi.alert-kpi .val{color:var(--bad)}
+.panel{background:var(--panel);border-radius:var(--radius);padding:1rem 1.15rem}
+.chart-box{position:relative;height:280px}
+
+/* ---------- tables ---------- */
+.table{--bs-table-bg:transparent;margin-bottom:0}
+.table thead th{background:var(--panel);color:var(--royal);font-weight:700;font-size:.8rem;border-bottom:0;white-space:nowrap}
+.table td{vertical-align:middle}
+.thumb{width:42px;height:42px;border-radius:10px;object-fit:cover;background:var(--panel);display:inline-flex;align-items:center;justify-content:center;color:var(--blue);font-size:1.2rem}
+.badge-soft{padding:.38em .7em;border-radius:20px;font-weight:600;font-size:.72rem}
+.b-ok{background:#e3f6ee;color:var(--ok)} .b-low{background:#fff4dd;color:var(--warn)} .b-out{background:#fdecea;color:var(--bad)}
+.b-info{background:var(--panel);color:var(--royal)} .b-gray{background:#eef1f6;color:#52607a}
+.qty-in{color:var(--ok);font-weight:700} .qty-out{color:var(--bad);font-weight:700}
+.filters .form-control,.filters .form-select{min-width:140px}
+.pagination .page-link{color:var(--blue);border-radius:8px;margin:0 2px}
+.pagination .active .page-link{background:var(--blue);border-color:var(--blue);color:#fff}
+.subnav{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem}
+.subnav a{padding:.45rem .95rem;border-radius:30px;background:#fff;border:1px solid var(--line);text-decoration:none;color:var(--ink);font-weight:600;font-size:.85rem}
+.subnav a.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.empty{padding:2.5rem 1rem;text-align:center;color:var(--muted)} .empty i{font-size:2rem;display:block;color:#a9bbd8}
+.compat-list{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:.5rem .8rem}
+
+/* ---------- login ---------- */
+.auth-wrap{min-height:100vh;display:flex;flex-direction:column;background:linear-gradient(135deg,#eaf2fb 0%,#fff 55%,#dce9fb 100%);position:relative;overflow:hidden}
+.auth-banner{position:absolute;left:0;right:0;bottom:0;height:46vh;min-height:240px;background:url('../img/spareparts-banner.svg') center bottom/auto 100% repeat-x;opacity:.45;filter:grayscale(.55);pointer-events:none}
+.auth-banner.top{top:0;bottom:auto;height:170px;min-height:0;opacity:.25;transform:scaleY(-1)}
+.auth-center{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;position:relative;z-index:2}
+.auth-card{width:100%;max-width:430px;background:rgba(255,255,255,.96);border-radius:18px;box-shadow:0 18px 50px rgba(11,61,145,.18);padding:2rem 2rem 1.6rem;border:1px solid var(--line)}
+.auth-card h1{font-size:1.45rem;font-weight:800;color:var(--royal);margin:0}
+.auth-logo{width:54px;height:54px;border-radius:16px;background:var(--royal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin-bottom:.9rem}
+.auth-foot{position:relative;z-index:2;text-align:center;padding:.9rem;color:#33476e;font-size:.8rem;font-weight:600}
+
+/* ---------- POS / scan ---------- */
+.search-drop{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:50;display:none;max-height:320px;overflow:auto}
+.search-drop button{display:flex;width:100%;justify-content:space-between;gap:1rem;text-align:left;background:none;border:0;border-bottom:1px solid #f0f4fa;padding:.55rem .9rem}
+.search-drop button:hover{background:var(--panel)}
+.totals-box dt{font-weight:500;color:var(--muted)} .totals-box dd{text-align:right;margin:0;font-weight:600}
+.totals-box .grand{font-size:1.35rem;color:var(--royal);font-weight:800}
+.scan-view{width:100%;min-height:260px;background:#0A1F44;border-radius:14px;overflow:hidden;color:#8fa6d1;display:flex;align-items:center;justify-content:center;text-align:center}
+.detail-card .big{font-size:1.25rem;font-weight:800;color:var(--royal)}
+
+/* ---------- invoice / labels ---------- */
+.invoice{background:#fff;max-width:860px;margin:1.5rem auto;padding:2rem 2.2rem;border:1px solid var(--line);border-radius:14px}
+.invoice h2{color:var(--royal);font-weight:800}
+.label-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.label-card{background:#fff;border:1px dashed #8aa2cf;border-radius:8px;padding:.6rem .7rem;text-align:center;page-break-inside:avoid}
+.label-card svg{max-width:100%;height:62px}
+.label-card .nm{font-weight:700;font-size:.85rem;line-height:1.15} .label-card .mt{font-size:.72rem;color:#52607a}
+
+/* ---------- responsive ---------- */
+@media (max-width:991.98px){
+  .sidebar{transform:translateX(-100%)} .sidebar.open{transform:none} .overlay.show{display:block}
+  .main{margin-left:0} .topbar{padding:.6rem .9rem} .content{padding:1rem .85rem} .gsearch{max-width:none}
+  .page-title{font-size:1.05rem}
+}
+@media (max-width:575.98px){ .gsearch{display:none!important} .kpi .val{font-size:1.3rem} .auth-card{padding:1.5rem 1.2rem} }
+
+/* ---------- print (invoice, labels, reports -> "Save as PDF") ---------- */
+@media print{
+  .sidebar,.topbar,.app-footer,.no-print,.overlay,.alert,.btn,.subnav{display:none!important}
+  .main{margin:0!important} .content{padding:0!important} body{background:#fff!important}
+  .card{box-shadow:none!important;border:1px solid #ccc!important} .invoice{border:0;margin:0;padding:0;max-width:none}
+  .table thead th{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .print-title{display:block!important}
+}
+.print-title{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}

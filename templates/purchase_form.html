@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}New purchase order{% endblock %}
+{% block content %}
+<form method="post" class="needs-validation" novalidate>{{ csrf_input() }}
+<div class="row g-3">
+  <div class="col-lg-9"><div class="card"><div class="card-header">Order items <button type="button" class="btn btn-sm btn-outline-primary" id="addRow"><i class="bi bi-plus-lg me-1"></i>Add line</button></div>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Part</th><th>Qty</th><th>Unit cost (Rs)</th><th class="text-end">GST</th><th class="text-end">Amount</th><th></th></tr></thead><tbody id="poBody"></tbody></table></div>
+    <div class="card-body border-top text-end fs-5">Total incl. GST: <b class="text-primary" id="poTotal">Rs 0.00</b></div></div></div>
+  <div class="col-lg-3"><div class="card"><div class="card-header">Order details</div><div class="card-body vstack gap-3">
+    <div><label class="form-label">Supplier *</label><select class="form-select" name="supplier_id" required><option value="">Choose...</option>{% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">Receive stock at *</label><select class="form-select" name="location_id" required>{% for l in locations %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">Order date</label><input type="date" class="form-control" name="order_date" value="{{ today }}"></div>
+    <div><label class="form-label">Notes</label><textarea class="form-control" rows="2" name="notes" maxlength="300"></textarea></div>
+    <button class="btn btn-primary">Create purchase order</button><a class="btn btn-light" href="{{ url_for('purchases') }}">Cancel</a></div></div></div>
+</div></form>
+<script id="partsData" type="application/json">{{ parts|tojson }}</script>
+<script id="prefillData" type="application/json">{{ prefill|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/purchase.js') }}"></script>{% endblock %}

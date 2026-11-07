@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ s.invoice_no }} | Invoice</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+<style>@media print{@page{margin:12mm}.btn{display:none!important}}</style></head>
+<body><div class="text-center mt-3 no-print"><button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print / Save as PDF</button>
+  <a class="btn btn-light" href="{{ url_for('sale_detail', sid=s.id) }}">Back</a></div>
+<div class="invoice">
+  <div class="d-flex justify-content-between flex-wrap gap-3 border-bottom pb-3 mb-3">
+    <div><h2 class="mb-1">{{ st.shop_name }}</h2><div class="small text-muted">{{ st.shop_address }}<br>{{ st.shop_phone }}{% if st.shop_email %} &middot; {{ st.shop_email }}{% endif %}<br>{% if st.gst_number %}<b>GSTIN:</b> {{ st.gst_number }}{% endif %}</div></div>
+    <div class="text-end"><div class="h5 mb-1 text-primary">TAX INVOICE</div><div><b>{{ s.invoice_no }}</b></div><div class="small">{{ s.sale_date|dmyhm }}</div>
+      {% if s.status != 'completed' %}<div class="small text-danger fw-semibold">{{ s.status|replace('_',' ')|upper }}</div>{% endif %}</div></div>
+  <div class="row mb-3"><div class="col-sm-6"><div class="small text-muted">Billed to</div><div class="fw-semibold">{{ s.customer or 'Walk-in customer' }}</div>
+      <div class="small">{{ s.cphone or '' }}<br>{{ s.caddress or '' }}{% if s.bike_owned %}<br>Bike: {{ s.bike_owned }}{% endif %}</div></div>
+    <div class="col-sm-6 text-sm-end small"><div>Payment: <b>{{ s.payment_mode }}</b></div><div>Store: {{ s.location }}</div><div>Billed by: {{ s.cashier or '-' }}</div></div></div>
+  <table class="table table-sm"><thead><tr><th>#</th><th>Item</th><th class="text-end">Qty</th><th class="text-end">Rate</th><th class="text-end">Taxable</th><th class="text-end">GST %</th><th class="text-end">GST</th><th class="text-end">Amount</th></tr></thead><tbody>
+  {% for l in lines %}<tr><td>{{ loop.index }}</td><td>{{ l.it.name }}<div class="small text-muted">{{ l.it.part_no }}</div></td><td class="text-end">{{ l.it.qty }}</td><td class="text-end">{{ l.it.unit_price|inr }}</td>
+    <td class="text-end">{{ l.taxable|inr }}</td><td class="text-end">{{ '%g'|format(l.it.gst_percent) }}%</td><td class="text-end">{{ l.gst|inr }}</td><td class="text-end">{{ (l.taxable + l.gst)|inr }}</td></tr>{% endfor %}</tbody></table>
+  <div class="row justify-content-end"><div class="col-sm-6 col-md-5"><dl class="totals-box row mb-0">
+    <dt class="col-6">Subtotal</dt><dd class="col-6">{{ s.subtotal|inr }}</dd><dt class="col-6">Discount</dt><dd class="col-6">- {{ s.discount|inr }}</dd>
+    <dt class="col-6">CGST</dt><dd class="col-6">{{ (s.gst_amount / 2)|inr }}</dd><dt class="col-6">SGST</dt><dd class="col-6">{{ (s.gst_amount / 2)|inr }}</dd>
+    <dt class="col-6 border-top pt-2">Grand total</dt><dd class="col-6 border-top pt-2 grand">{{ s.total|inr }}</dd>
+    {% if s.returned_amount %}<dt class="col-6">Returned</dt><dd class="col-6">- {{ s.returned_amount|inr }}</dd>{% endif %}
+    <dt class="col-6">Paid</dt><dd class="col-6">{{ s.paid_amount|inr }}</dd><dt class="col-6">Balance due</dt><dd class="col-6">{{ [s.total - s.returned_amount - s.paid_amount, 0]|max|inr }}</dd></dl></div></div>
+  <hr><div class="small text-muted">{{ st.invoice_footer }}</div>
+  <div class="d-flex justify-content-between mt-5 small"><span>Customer signature</span><span>For {{ st.shop_name }}</span></div>
+  <div class="text-center text-muted small mt-4">{{ CREDIT }}</div>
+</div></body></html>

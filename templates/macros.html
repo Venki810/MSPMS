@@ -1,0 +1,51 @@
+{# Shared template macros #}
+{% macro pager(pg) %}
+{% if pg and pg.pages > 1 %}
+<nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2 border-top no-print" aria-label="Pagination">
+  <small class="text-muted">Showing page {{ pg.page }} of {{ pg.pages }} &middot; {{ pg.total }} records</small>
+  <ul class="pagination pagination-sm mb-0">
+    <li class="page-item {{ 'disabled' if pg.page <= 1 }}"><a class="page-link" href="{{ page_url(pg.page - 1) }}">Prev</a></li>
+    {% for p in range(1, pg.pages + 1) %}
+      {% if p == 1 or p == pg.pages or (p - pg.page)|abs <= 1 %}
+      <li class="page-item {{ 'active' if p == pg.page }}"><a class="page-link" href="{{ page_url(p) }}">{{ p }}</a></li>
+      {% elif (p - pg.page)|abs == 2 %}<li class="page-item disabled"><span class="page-link">&hellip;</span></li>{% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if pg.page >= pg.pages }}"><a class="page-link" href="{{ page_url(pg.page + 1) }}">Next</a></li>
+  </ul>
+</nav>
+{% elif pg %}<div class="px-3 py-2 border-top small text-muted">{{ pg.total }} record{{ '' if pg.total == 1 else 's' }}</div>{% endif %}
+{% endmacro %}
+
+{% macro stock_badge(qty, reorder) %}
+{% if qty <= 0 %}<span class="badge-soft b-out">Out of stock</span>
+{% elif qty <= reorder %}<span class="badge-soft b-low">Low &middot; {{ qty }}</span>
+{% else %}<span class="badge-soft b-ok">{{ qty }} in stock</span>{% endif %}
+{% endmacro %}
+
+{% macro delete_btn(url, message, label='', size='sm') %}
+<form method="post" action="{{ url }}" class="d-inline" data-confirm="{{ message }}">{{ csrf_input() }}
+  <button class="btn btn-{{ size }} btn-outline-danger" title="Delete" aria-label="Delete"><i class="bi bi-trash"></i>{{ ' ' ~ label if label }}</button></form>
+{% endmacro %}
+
+{% macro empty(text, icon='inbox') %}<div class="empty"><i class="bi bi-{{ icon }}"></i>{{ text }}</div>{% endmacro %}
+
+{# Update-stock modal: open with openStockModal(partId, partName, locationId) #}
+{% macro stock_modal(locations, next_url='') %}
+<div class="modal fade" id="stockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content js-ajax-stock" method="post" action="{{ url_for('stock_adjust') }}" novalidate>
+    {{ csrf_input() }}<input type="hidden" name="part_id" id="sm_part"><input type="hidden" name="next" value="{{ next_url }}">
+    <div class="modal-header"><h5 class="modal-title">Update stock</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body vstack gap-3">
+      <div class="fw-semibold text-primary" id="sm_name"></div>
+      <div><label class="form-label">Location</label><select class="form-select" name="location_id" id="sm_loc" required>
+        {% for l in locations %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
+      <div class="row g-2"><div class="col-7"><label class="form-label">Action</label><select class="form-select" name="mode" id="sm_mode">
+          <option value="add">Add stock (+)</option><option value="remove">Remove stock (-)</option><option value="set">Set exact count</option></select></div>
+        <div class="col-5"><label class="form-label">Quantity</label><input type="number" min="0" class="form-control" name="qty" required></div></div>
+      <div><label class="form-label">Reason</label><input class="form-control" name="reason" required maxlength="120" placeholder="e.g. Stock count, damaged, found stock"></div>
+      <div class="text-danger small d-none" id="sm_err"></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save stock</button></div>
+  </form></div>
+</div>
+{% endmacro %}

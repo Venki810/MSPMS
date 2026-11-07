@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import pager, empty %}
+{% block title %}Sales{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1">Invoice / customer</label><input class="form-control" name="q" value="{{ a.get('q','') }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1">From</label><input type="date" class="form-control" name="from" value="{{ a.get('from','') }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1">To</label><input type="date" class="form-control" name="to" value="{{ a.get('to','') }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1">Status</label><select class="form-select" name="status"><option value="">All</option><option value="completed" {{ 'selected' if a.get('status')=='completed' }}>Completed</option><option value="partial_return" {{ 'selected' if a.get('status')=='partial_return' }}>Partial return</option><option value="returned" {{ 'selected' if a.get('status')=='returned' }}>Returned</option></select></div>
+  <div class="col-md-3 d-flex gap-2 justify-content-md-end"><button class="btn btn-primary">Filter</button><a class="btn btn-light" href="{{ url_for('sales') }}">Reset</a><a class="btn btn-success" href="{{ url_for('sale_new') }}"><i class="bi bi-plus-lg me-1"></i>New bill</a></div></form></div></div>
+<div class="card"><div class="card-header"><span>Sales history</span><span class="small text-muted fw-normal">{{ summ.n }} bills &middot; net {{ summ.v|inr }}</span></div><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th class="text-end">Total</th><th class="text-end">Balance</th><th>Mode</th><th>Status</th><th></th></tr></thead><tbody>
+{% for s in rows %}{% set net = s.total - s.returned_amount %}{% set bal = [net - s.paid_amount, 0]|max %}
+<tr><td class="fw-semibold">{{ s.invoice_no }}</td><td class="small">{{ s.sale_date|dmyhm }}</td><td>{{ s.customer or 'Walk-in' }}</td><td class="text-end">{{ net|inr }}</td>
+  <td class="text-end {{ 'text-danger fw-semibold' if bal > 0.005 }}">{{ bal|inr if bal > 0.005 else '-' }}</td><td>{{ s.payment_mode }}</td>
+  <td><span class="badge-soft {{ {'completed':'b-ok','partial_return':'b-low','returned':'b-out'}[s.status] }}">{{ s.status|replace('_',' ') }}</span></td>
+  <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('sale_detail', sid=s.id) }}">Open</a> <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{{ url_for('sale_print', sid=s.id) }}" title="Print invoice"><i class="bi bi-printer"></i></a></td></tr>
+{% else %}<tr><td colspan="8">{{ empty('No sales found.', 'receipt') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+{% endblock %}

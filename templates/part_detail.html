@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import stock_badge, stock_modal, delete_btn, empty %}
+{% block title %}Part details{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-5"><div class="card detail-card"><div class="card-body">
+    <div class="d-flex gap-3 align-items-start">
+      {% if p.image %}<img src="{{ img_url(p.image) }}" class="rounded" style="width:96px;height:96px;object-fit:cover" alt="">{% else %}<span class="thumb" style="width:96px;height:96px;font-size:2.4rem"><i class="bi bi-gear"></i></span>{% endif %}
+      <div><div class="small text-muted">{{ p.part_no }} &middot; {{ p.category }}</div><h2 class="h5 mb-1">{{ p.name }}</h2>
+        <div class="mb-1">{{ stock_badge(p.total_qty, p.reorder_level) }}</div><div class="small text-muted">{{ p.brand or 'No brand' }} &middot; Rack {{ p.rack or '-' }}</div></div>
+    </div>
+    <div class="row g-2 mt-3 text-center">
+      <div class="col-4"><div class="panel py-2"><div class="small text-muted">Selling</div><div class="big">{{ p.selling_price|inr(0) }}</div></div></div>
+      <div class="col-4"><div class="panel py-2"><div class="small text-muted">Cost</div><div class="big">{{ p.cost_price|inr(0) }}</div></div></div>
+      <div class="col-4"><div class="panel py-2"><div class="small text-muted">GST</div><div class="big">{{ '%g'|format(p.gst_percent) }}%</div></div></div>
+    </div>
+    {% if p.description %}<p class="mt-3 mb-0 text-muted">{{ p.description }}</p>{% endif %}
+    <div class="mt-3 text-center"><svg id="bc"></svg><div class="small text-muted">{{ p.barcode }}</div></div>
+    <div class="d-grid gap-2 mt-3">
+      <button class="btn btn-primary btn-lg" onclick="openStockModal({{ p.id }}, {{ p.name|tojson|forceescape }})"><i class="bi bi-box-seam me-2"></i>Update Stock</button>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-primary flex-fill" href="{{ url_for('sale_new', part_id=p.id) }}"><i class="bi bi-receipt me-1"></i>Add to sale</a>
+        <a class="btn btn-outline-primary flex-fill" href="{{ url_for('purchase_new', part_id=p.id) }}"><i class="bi bi-cart-plus me-1"></i>Reorder</a>
+        <a class="btn btn-outline-secondary flex-fill" target="_blank" href="{{ url_for('part_label', pid=p.id) }}"><i class="bi bi-upc me-1"></i>Label</a>
+      </div>
+      <div class="d-flex gap-2"><a class="btn btn-light flex-fill" href="{{ url_for('part_edit', pid=p.id) }}"><i class="bi bi-pencil me-1"></i>Edit</a>
+        {% if g.user.role != 'staff' %}<span class="flex-fill d-grid">{{ delete_btn(url_for('part_delete', pid=p.id), 'Delete this part and its stock records? This cannot be undone.', 'Delete', 'md') }}</span>{% endif %}</div>
+    </div>
+  </div></div></div>
+
+  <div class="col-lg-7 vstack gap-3">
+    <div class="card"><div class="card-header">Stock by location <span class="badge-soft b-info">Total {{ p.total_qty }}</span></div>
+      <div class="table-responsive"><table class="table"><thead><tr><th>Location</th><th>Type</th><th class="text-end">Qty</th><th></th></tr></thead><tbody>
+        {% for s in stock %}<tr><td>{{ s.name }}</td><td><span class="badge-soft b-gray">{{ s.type }}</span></td><td class="text-end fw-bold">{{ s.qty }}</td>
+          <td class="text-end"><button class="btn btn-sm btn-light" onclick="openStockModal({{ p.id }}, {{ p.name|tojson|forceescape }}, {{ s.id }})">Adjust</button></td></tr>{% endfor %}
+      </tbody></table></div></div>
+    <div class="card"><div class="card-header">Compatible bikes <span class="badge-soft b-info">{{ bikes|length }}</span></div>
+      <div class="card-body">{% for b in bikes %}<a class="badge-soft b-info text-decoration-none me-1 mb-1 d-inline-block" href="{{ url_for('bike_detail', bid=b.id) }}">{{ b.brand }} {{ b.model }} ({{ b.variant }})</a>
+        {% else %}<span class="text-muted">No bike models linked yet. Use Edit to map compatible bikes.</span>{% endfor %}</div></div>
+    <div class="card"><div class="card-header">Recent stock movements</div>
+      <div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th class="text-end">Change</th><th>Ref</th></tr></thead><tbody>
+        {% for m in moves %}<tr><td class="small">{{ m.created_at|dmyhm }}</td><td><span class="badge-soft b-gray">{{ m.movement_type|replace('_',' ') }}</span></td><td>{{ m.loc }}</td>
+          <td class="text-end {{ 'qty-in' if m.qty_change > 0 else 'qty-out' }}">{{ '+' if m.qty_change > 0 }}{{ m.qty_change }}</td><td class="small text-muted">{{ m.reference or '' }}</td></tr>
+        {% else %}<tr><td colspan="5" class="text-center text-muted py-3">No movements yet</td></tr>{% endfor %}</tbody></table></div></div>
+  </div>
+</div>
+{{ stock_modal(locations, request.path) }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>try{JsBarcode('#bc','{{ p.barcode }}',{format:'CODE128',height:55,displayValue:false,margin:0});}catch(e){}</script>
+{% endblock %}

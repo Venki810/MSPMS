@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ s.invoice_no }}{% endblock %}
+{% block content %}
+{% set net = s.total - s.returned_amount %}{% set bal = [net - s.paid_amount, 0]|max %}
+<div class="row g-3">
+  <div class="col-lg-8"><form method="post" action="{{ url_for('sale_return', sid=s.id) }}" class="needs-validation" novalidate>{{ csrf_input() }}<div class="card">
+    <div class="card-header"><span>{{ s.invoice_no }} <span class="badge-soft {{ {'completed':'b-ok','partial_return':'b-low','returned':'b-out'}[s.status] }} ms-1">{{ s.status|replace('_',' ') }}</span></span>
+      <span class="d-flex gap-2"><a class="btn btn-sm btn-primary" target="_blank" href="{{ url_for('sale_print', sid=s.id) }}"><i class="bi bi-printer me-1"></i>Print / PDF</a><a class="btn btn-sm btn-light" href="{{ url_for('sales') }}">Back</a></span></div>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Part</th><th class="text-end">Price</th><th class="text-end">Qty</th><th class="text-end">Returned</th><th class="text-end">GST</th><th style="width:110px">Return qty</th></tr></thead><tbody>
+    {% for i in items %}<tr><td><a class="text-decoration-none fw-semibold" href="{{ url_for('part_detail', pid=i.part_id) }}">{{ i.name }}</a><div class="small text-muted">{{ i.part_no }}</div></td><td class="text-end">{{ i.unit_price|inr }}</td><td class="text-end">{{ i.qty }}</td>
+      <td class="text-end">{{ i.returned_qty }}</td><td class="text-end">{{ '%g'|format(i.gst_percent) }}%</td>
+      <td>{% if i.qty > i.returned_qty %}<input type="number" min="0" max="{{ i.qty - i.returned_qty }}" value="0" name="ret_{{ i.id }}" class="form-control form-control-sm">{% else %}<span class="text-muted small">done</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+    {% if s.status != 'returned' %}<div class="card-body border-top d-flex flex-wrap gap-2 align-items-end"><div><label class="form-label small mb-1">Return stock to</label><select class="form-select form-select-sm" name="location_id">{% for l in locations %}<option value="{{ l.id }}" {{ 'selected' if l.id == s.location_id }}>{{ l.name }}</option>{% endfor %}</select></div>
+      <button class="btn btn-outline-danger btn-sm"><i class="bi bi-arrow-return-left me-1"></i>Process return</button></div>{% endif %}
+  </div></form></div>
+  <div class="col-lg-4 vstack gap-3">
+    <div class="card"><div class="card-header">Bill summary</div><div class="card-body">
+      <div class="small mb-2"><b>Date:</b> {{ s.sale_date|dmyhm }}<br><b>Customer:</b> {% if s.customer_id %}<a href="{{ url_for('customer_detail', cid=s.customer_id) }}">{{ s.customer }}</a>{% else %}Walk-in{% endif %}<br><b>Store:</b> {{ s.location }}<br><b>Billed by:</b> {{ s.cashier or '-' }}</div>
+      <dl class="totals-box row mb-0"><dt class="col-6">Subtotal</dt><dd class="col-6">{{ s.subtotal|inr }}</dd><dt class="col-6">Discount</dt><dd class="col-6">- {{ s.discount|inr }}</dd><dt class="col-6">GST</dt><dd class="col-6">{{ s.gst_amount|inr }}</dd>
+        <dt class="col-6">Total</dt><dd class="col-6">{{ s.total|inr }}</dd>{% if s.returned_amount %}<dt class="col-6">Returned</dt><dd class="col-6 text-danger">- {{ s.returned_amount|inr }}</dd>{% endif %}
+        <dt class="col-6 border-top pt-2">Net</dt><dd class="col-6 border-top pt-2 grand">{{ net|inr }}</dd><dt class="col-6">Paid ({{ s.payment_mode }})</dt><dd class="col-6">{{ s.paid_amount|inr }}</dd>
+        <dt class="col-6">Balance</dt><dd class="col-6 {{ 'text-danger' if bal > 0.005 }}">{{ bal|inr }}</dd></dl>
+      {% if bal > 0.005 %}<form method="post" action="{{ url_for('sale_pay', sid=s.id) }}" class="input-group mt-3 needs-validation" novalidate>{{ csrf_input() }}
+        <input type="number" step="0.01" min="0.01" max="{{ '%.2f'|format(bal) }}" name="amount" class="form-control" placeholder="Amount" required><button class="btn btn-primary">Receive</button></form>{% endif %}</div></div>
+  </div>
+</div>
+{% endblock %}

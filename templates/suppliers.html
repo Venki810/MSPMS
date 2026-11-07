@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import pager, delete_btn, empty %}
+{% block title %}Suppliers{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2 align-items-end">
+  <div class="col-md-6"><input class="form-control" name="q" value="{{ a.get('q','') }}" placeholder="Search supplier, contact or phone"></div>
+  <div class="col-md-6 d-flex gap-2 justify-content-md-end"><button class="btn btn-primary">Search</button><a class="btn btn-light" href="{{ url_for('suppliers') }}">Reset</a>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#supModal" data-new-target="#supModal" data-title="Add supplier"><i class="bi bi-plus-lg me-1"></i>Add supplier</button></div></form></div></div>
+<div class="card"><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Supplier</th><th>Contact</th><th>GSTIN</th><th class="text-end">Orders</th><th class="text-end">Purchased</th><th class="text-end">Dues</th><th class="text-end">Actions</th></tr></thead><tbody>
+{% for s in rows %}<tr><td><a class="fw-semibold text-decoration-none" href="{{ url_for('supplier_detail', sid=s.id) }}">{{ s.name }}</a><div class="small text-muted">{{ s.address or '' }}</div></td><td>{{ s.contact_person or '-' }}<div class="small text-muted">{{ s.phone or '' }}</div></td><td class="small">{{ s.gstin or '-' }}</td>
+  <td class="text-end">{{ s.pos }}</td><td class="text-end">{{ s.purchased|inr }}</td><td class="text-end {{ 'text-danger fw-semibold' if s.dues > 0.005 }}">{{ s.dues|inr }}</td>
+  <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('purchase_new') }}" title="New PO"><i class="bi bi-cart-plus"></i></a>
+    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#supModal" data-edit-target="#supModal" data-title="Edit supplier" data-id="{{ s.id }}" data-name="{{ s.name }}" data-contact_person="{{ s.contact_person or '' }}" data-phone="{{ s.phone or '' }}" data-email="{{ s.email or '' }}" data-address="{{ s.address or '' }}" data-gstin="{{ s.gstin or '' }}"><i class="bi bi-pencil"></i></button>
+    {% if g.user.role != 'staff' %}{{ delete_btn(url_for('supplier_delete', sid=s.id), 'Delete supplier ' ~ s.name ~ '?') }}{% endif %}</td></tr>
+{% else %}<tr><td colspan="7">{{ empty('No suppliers found.', 'truck') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+<div class="modal fade" id="supModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form class="modal-content needs-validation" method="post" action="{{ url_for('supplier_save') }}" novalidate>{{ csrf_input() }}<input type="hidden" name="id">
+  <div class="modal-header"><h5 class="modal-title">Add supplier</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body row g-3"><div class="col-12"><label class="form-label">Supplier name *</label><input class="form-control" name="name" required minlength="2" maxlength="100"></div>
+    <div class="col-6"><label class="form-label">Contact person</label><input class="form-control" name="contact_person" maxlength="80"></div><div class="col-6"><label class="form-label">Phone</label><input class="form-control" name="phone" pattern="[+0-9 \-()]{7,20}"></div>
+    <div class="col-6"><label class="form-label">Email</label><input type="email" class="form-control" name="email"></div><div class="col-6"><label class="form-label">GSTIN</label><input class="form-control" name="gstin" pattern="[0-9A-Za-z]{15}" maxlength="15" placeholder="15 characters"></div>
+    <div class="col-12"><label class="form-label">Address</label><input class="form-control" name="address" maxlength="200"></div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div></form></div></div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import pager, delete_btn, empty %}
+{% block title %}Vehicles / Bike Models{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2 align-items-end">
+  <div class="col-md-4"><label class="form-label small mb-1">Search model</label><input class="form-control" name="q" value="{{ a.get('q','') }}"></div>
+  <div class="col-md-3"><label class="form-label small mb-1">Brand</label><select class="form-select" name="brand"><option value="">All brands</option>
+    {% for b in brands %}<option value="{{ b.id }}" {{ 'selected' if a.get('brand')|string == b.id|string }}>{{ b.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-5 d-flex gap-2 flex-wrap justify-content-md-end"><button class="btn btn-primary">Filter</button><a class="btn btn-light" href="{{ url_for('bikes') }}">Reset</a>
+    <a class="btn btn-outline-primary" href="{{ url_for('bike_finder') }}"><i class="bi bi-search me-1"></i>Find parts for my bike</a>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bikeModal" data-new-target="#bikeModal" data-title="Add bike model"><i class="bi bi-plus-lg me-1"></i>Add model</button></div>
+</form></div></div>
+<div class="card"><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Brand</th><th>Model</th><th>Variant</th><th>Years</th><th>Engine</th><th>Compatible parts</th><th class="text-end">Actions</th></tr></thead><tbody>
+{% for b in bikes %}<tr><td>{{ b.brand }}</td><td class="fw-semibold"><a class="text-decoration-none" href="{{ url_for('bike_detail', bid=b.id) }}">{{ b.model }}</a></td><td>{{ b.variant }}</td>
+  <td>{{ b.year_from }} - {{ b.year_to }}</td><td>{{ b.engine_cc }} cc</td><td><span class="badge-soft b-info">{{ b.parts_count }} parts</span></td>
+  <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('bike_detail', bid=b.id) }}" title="Manage compatibility"><i class="bi bi-diagram-3"></i></a>
+    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#bikeModal" data-edit-target="#bikeModal" data-title="Edit bike model"
+      data-id="{{ b.id }}" data-brand_id="{{ b.brand_id }}" data-model="{{ b.model }}" data-variant="{{ b.variant }}" data-year_from="{{ b.year_from }}" data-year_to="{{ b.year_to }}" data-engine_cc="{{ b.engine_cc }}"><i class="bi bi-pencil"></i></button>
+    {% if g.user.role != 'staff' %}{{ delete_btn(url_for('bike_delete', bid=b.id), 'Delete ' ~ b.model ~ '? Its part mappings will be removed.') }}{% endif %}</td></tr>
+{% else %}<tr><td colspan="7">{{ empty('No bike models found.', 'bicycle') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+
+<div class="modal fade" id="bikeModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form class="modal-content needs-validation" method="post" action="{{ url_for('bike_save') }}" novalidate>
+  {{ csrf_input() }}<input type="hidden" name="id">
+  <div class="modal-header"><h5 class="modal-title">Add bike model</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body row g-3">
+    <div class="col-6"><label class="form-label">Brand *</label><select class="form-select" name="brand_id" required><option value="">Choose...</option>{% for b in brands %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}</select></div>
+    <div class="col-6"><label class="form-label">Model *</label><input class="form-control" name="model" required maxlength="60"></div>
+    <div class="col-6"><label class="form-label">Variant</label><input class="form-control" name="variant" data-default="Standard" maxlength="40"></div>
+    <div class="col-6"><label class="form-label">Engine cc *</label><input type="number" class="form-control" name="engine_cc" min="25" max="2500" required></div>
+    <div class="col-6"><label class="form-label">Year from *</label><input type="number" class="form-control" name="year_from" min="1950" max="2100" required></div>
+    <div class="col-6"><label class="form-label">Year to *</label><input type="number" class="form-control" name="year_to" min="1950" max="2100" required></div>
+  </div>
+  <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div>
+</form></div></div>
+{% endblock %}

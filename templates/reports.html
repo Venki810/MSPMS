@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="subnav no-print">{% for k, t in titles.items() %}<a class="{{ 'active' if k == kind }}" href="{{ url_for('reports', type=k, **{'from': d_from, 'to': d_to}) }}">{{ t }}</a>{% endfor %}</div>
+<div class="card mb-3 no-print"><div class="card-body"><form method="get" class="row g-2 align-items-end"><input type="hidden" name="type" value="{{ kind }}">
+  <div class="col-6 col-md-2"><label class="form-label small mb-1">From</label><input type="date" class="form-control" name="from" value="{{ d_from }}" {{ 'disabled' if rep.no_dates }}></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-1">To</label><input type="date" class="form-control" name="to" value="{{ d_to }}" {{ 'disabled' if rep.no_dates }}></div>
+  <div class="col-12 col-md-8 d-flex gap-2 flex-wrap justify-content-md-end"><button class="btn btn-primary" {{ 'disabled' if rep.no_dates }}>Apply dates</button>
+    <a class="btn btn-outline-primary" href="{{ url_for('reports_export', type=kind, fmt='csv', **{'from': d_from, 'to': d_to}) }}"><i class="bi bi-filetype-csv me-1"></i>CSV</a>
+    <a class="btn btn-outline-success" href="{{ url_for('reports_export', type=kind, fmt='xlsx', **{'from': d_from, 'to': d_to}) }}"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+    <button type="button" class="btn btn-outline-danger" onclick="window.print()"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / Print</button></div></form></div></div>
+<div class="print-title mb-3"><h2 class="h4">{{ titles[kind] }}</h2><div>{{ shop_name }} &middot; {% if rep.no_dates %}As on {{ today }}{% else %}{{ d_from|dmy }} to {{ d_to|dmy }}{% endif %}</div></div>
+<div class="row g-3 mb-3">{% for lbl, val, k in rep.totals %}<div class="col-6 col-md-3"><div class="card kpi"><div><div class="val">{{ val|inr(0) if k == 'money' else val }}</div><div class="lbl">{{ lbl }}</div></div></div></div>{% endfor %}</div>
+{% if rep.chart.labels %}<div class="card mb-3"><div class="card-header">{{ rep.chart.label }}</div><div class="card-body"><div class="chart-box"><canvas id="repChart"></canvas></div></div></div>{% endif %}
+<div class="card"><div class="card-header">{{ titles[kind] }} <span class="badge-soft b-info">{{ rep.rows|length }} rows</span></div><div class="table-responsive"><table class="table table-hover table-sm"><thead><tr>
+  {% for label, k in rep.cols %}<th class="{{ 'text-end' if k != 'text' }}">{{ label }}</th>{% endfor %}</tr></thead><tbody>
+  {% for r in rep.rows %}<tr>{% for v in r %}{% set k = rep.cols[loop.index0][1] %}<td class="{{ 'text-end' if k != 'text' }}">{% if k == 'money' %}{{ v|inr }}{% elif k == 'pct' %}{{ '%.1f'|format(v) }}%{% elif k == 'int' %}{{ v }}{% else %}{{ v if v is not none else '' }}{% endif %}</td>{% endfor %}</tr>
+  {% else %}<tr><td colspan="{{ rep.cols|length }}" class="text-center text-muted py-4">No data for this period.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+{% block scripts %}
+{% if rep.chart.labels %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script id="chartData" type="application/json">{{ rep.chart|tojson }}</script>
+<script>
+var c=JSON.parse(document.getElementById('chartData').textContent),P=['#0B3D91','#1E4FB5','#4F86E0','#7FAEF0','#A9C8F7','#12805c','#e0a31a','#c0392b'];
+var ds={label:c.label,data:c.data,backgroundColor:c.type==='doughnut'?P:'#1E4FB5',borderRadius:c.type==='bar'?6:0};
+new Chart(document.getElementById('repChart'),{type:c.type,data:{labels:c.labels,datasets:[ds]},options:{responsive:true,maintainAspectRatio:false,animation:false,indexAxis:c.horizontal?'y':'x',
+ plugins:{legend:{display:c.type==='doughnut',position:'right'}},scales:c.type==='doughnut'?{}:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
+</script>{% endif %}
+{% endblock %}

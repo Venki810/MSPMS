@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import pager, stock_badge, stock_modal, delete_btn, empty %}
+{% block title %}Inventory{% endblock %}
+{% block content %}
+<div class="subnav no-print">
+  {% for k, l in [('stock','Stock overview'),('ledger','Stock ledger'),('adjust','Adjust stock'),('low','Low stock'),('out','Out of stock'),('dead','Dead stock'),('locations','Locations'),('transfers','Transfers')] %}
+  <a href="{{ url_for('inventory', view=k) }}" class="{{ 'active' if view == k }}">{{ l }}</a>{% endfor %}
+</div>
+
+{% if view == 'stock' %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card kpi"><div class="ico"><i class="bi bi-boxes"></i></div><div><div class="val">{{ totals.units }}</div><div class="lbl">Units in stock</div></div></div></div>
+  <div class="col-md-4"><div class="card kpi"><div class="ico"><i class="bi bi-cash-stack"></i></div><div><div class="val">{{ totals.cost|inr(0) }}</div><div class="lbl">Value at cost</div></div></div></div>
+  <div class="col-md-4"><div class="card kpi"><div class="ico"><i class="bi bi-graph-up-arrow"></i></div><div><div class="val">{{ totals.retail|inr(0) }}</div><div class="lbl">Value at selling price</div></div></div></div>
+</div>
+<div class="card"><div class="card-header"><span>Stock by location</span><form method="get" class="d-flex gap-2"><input class="form-control form-control-sm" name="q" value="{{ a.get('q','') }}" placeholder="Search part..."><button class="btn btn-sm btn-primary">Go</button></form></div>
+<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Part</th>{% for l in locations %}<th class="text-end">{{ l.name }}</th>{% endfor %}<th class="text-end">Total</th><th>Status</th><th></th></tr></thead><tbody>
+{% for p in rows %}<tr><td><a class="fw-semibold text-decoration-none" href="{{ url_for('part_detail', pid=p.id) }}">{{ p.name }}</a><div class="small text-muted">{{ p.part_no }}</div></td>
+  {% for l in locations %}<td class="text-end">{{ matrix.get((p.id, l.id), 0) }}</td>{% endfor %}<td class="text-end fw-bold">{{ p.total_qty }}</td><td>{{ stock_badge(p.total_qty, p.reorder_level) }}</td>
+  <td class="text-end"><button class="btn btn-sm btn-outline-primary" onclick="openStockModal({{ p.id }}, {{ p.name|tojson|forceescape }})"><i class="bi bi-box-seam"></i></button></td></tr>
+{% else %}<tr><td colspan="{{ locations|length + 4 }}">{{ empty('No parts found.') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+
+{% elif view == 'ledger' %}
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1">Part / reference</label><input class="form-control" name="q" value="{{ a.get('q','') }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1">Type</label><select class="form-select" name="type"><option value="">All</option>
+    {% for t in ['purchase','sale','return_in','transfer_in','transfer_out','adjustment'] %}<option value="{{ t }}" {{ 'selected' if a.get('type') == t }}>{{ t|replace('_',' ') }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1">Location</label><select class="form-select" name="location"><option value="">All</option>{% for l in locations %}<option value="{{ l.id }}" {{ 'selected' if a.get('location')|string == l.id|string }}>{{ l.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1">From</label><input type="date" class="form-control" name="from" value="{{ a.get('from','') }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1">To</label><input type="date" class="form-control" name="to" value="{{ a.get('to','') }}"></div>
+  <div class="col-md-1"><button class="btn btn-primary w-100">Go</button></div></form></div></div>
+<div class="card"><div class="card-header">Stock ledger (in / out movements)</div><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Part</th><th>Location</th><th>Type</th><th class="text-end">In / Out</th><th>Reference</th><th>Reason</th><th>By</th></tr></thead><tbody>
+{% for m in rows %}<tr><td class="small text-nowrap">{{ m.created_at|dmyhm }}</td><td><a class="text-decoration-none" href="{{ url_for('part_detail', pid=m.part_id) }}">{{ m.pname }}</a><div class="small text-muted">{{ m.part_no }}</div></td><td>{{ m.loc }}</td>
+  <td><span class="badge-soft b-gray">{{ m.movement_type|replace('_',' ') }}</span></td><td class="text-end {{ 'qty-in' if m.qty_change > 0 else 'qty-out' }}">{{ '+' if m.qty_change > 0 }}{{ m.qty_change }}</td>
+  <td class="small">{{ m.reference or '' }}</td><td class="small text-muted">{{ m.reason or '' }}</td><td class="small">{{ m.uname or '' }}</td></tr>
+{% else %}<tr><td colspan="8">{{ empty('No movements match.') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+
+{% elif view == 'adjust' %}
+<div class="row g-3"><div class="col-lg-5"><div class="card"><div class="card-header">Stock adjustment</div>
+  <form method="post" action="{{ url_for('stock_adjust') }}" class="card-body vstack gap-3 needs-validation" novalidate>{{ csrf_input() }}<input type="hidden" name="next" value="{{ url_for('inventory', view='adjust') }}">
+    <div><label class="form-label">Part *</label><select class="form-select" name="part_id" required><option value="">Choose part...</option>{% for p in parts_all %}<option value="{{ p.id }}">{{ p.part_no }} - {{ p.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">Location *</label><select class="form-select" name="location_id" required>{% for l in locations %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
+    <div class="row g-2"><div class="col-7"><label class="form-label">Action</label><select class="form-select" name="mode"><option value="add">Add stock (+)</option><option value="remove">Remove stock (-)</option><option value="set">Set exact count</option></select></div>
+      <div class="col-5"><label class="form-label">Quantity *</label><input type="number" min="0" class="form-control" name="qty" required></div></div>
+    <div><label class="form-label">Reason *</label><select class="form-select" name="reason" required><option value="">Choose...</option><option>Stock count correction</option><option>Damaged / defective</option><option>Expired / obsolete</option><option>Theft / loss</option><option>Found stock</option><option>Opening balance</option></select></div>
+    <button class="btn btn-primary">Save adjustment</button></form></div></div>
+  <div class="col-lg-7"><div class="card"><div class="card-header">Recent adjustments</div><div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Part</th><th>Location</th><th class="text-end">Change</th><th>Reason</th></tr></thead><tbody>
+    {% for m in rows %}<tr><td class="small">{{ m.created_at|dmy }}</td><td>{{ m.pname }}</td><td>{{ m.loc }}</td><td class="text-end {{ 'qty-in' if m.qty_change > 0 else 'qty-out' }}">{{ '+' if m.qty_change > 0 }}{{ m.qty_change }}</td><td class="small text-muted">{{ m.reason }}</td></tr>
+    {% else %}<tr><td colspan="5">{{ empty('No adjustments yet.') }}</td></tr>{% endfor %}</tbody></table></div></div></div></div>
+
+{% elif view in ('low', 'out') %}
+<div class="card"><div class="card-header">{{ 'Low-stock parts (at or below reorder level)' if view == 'low' else 'Out-of-stock parts' }}</div>
+<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Part</th><th>Category</th><th class="text-end">In stock</th><th class="text-end">Reorder level</th><th class="text-end">Cost</th><th></th></tr></thead><tbody>
+{% for p in rows %}<tr><td><a class="fw-semibold text-decoration-none" href="{{ url_for('part_detail', pid=p.id) }}">{{ p.name }}</a><div class="small text-muted">{{ p.part_no }}</div></td><td>{{ p.category }}</td>
+  <td class="text-end">{{ stock_badge(p.total_qty, p.reorder_level) }}</td><td class="text-end">{{ p.reorder_level }}</td><td class="text-end">{{ p.cost_price|inr }}</td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('purchase_new', part_id=p.id) }}"><i class="bi bi-cart-plus me-1"></i>Reorder</a></td></tr>
+{% else %}<tr><td colspan="6">{{ empty('Nothing here. Great!', 'check-circle') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+
+{% elif view == 'dead' %}
+<div class="card"><div class="card-header"><span>Dead stock: in stock but not sold in the last {{ days }} days</span>
+  <form method="get" class="d-flex gap-2 align-items-center"><select name="days" class="form-select form-select-sm">{% for d in [30,60,90,180,365] %}<option value="{{ d }}" {{ 'selected' if d == days }}>{{ d }} days</option>{% endfor %}</select><button class="btn btn-sm btn-primary">Go</button></form></div>
+<div class="card-body border-bottom"><b>{{ rows|length }}</b> parts &middot; money locked in dead stock (at cost): <b class="text-danger">{{ dead_value|inr }}</b></div>
+<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Part</th><th class="text-end">Qty</th><th class="text-end">Value (cost)</th><th>Last sold</th></tr></thead><tbody>
+{% for p in rows %}<tr><td><a class="fw-semibold text-decoration-none" href="{{ url_for('part_detail', pid=p.id) }}">{{ p.name }}</a><div class="small text-muted">{{ p.part_no }}</div></td><td class="text-end">{{ p.total_qty }}</td>
+  <td class="text-end">{{ (p.total_qty * p.cost_price)|inr }}</td><td>{{ last_sold.get(p.id)|dmy if last_sold.get(p.id) else 'Never' }}</td></tr>
+{% else %}<tr><td colspan="4">{{ empty('No dead stock for this period.', 'check-circle') }}</td></tr>{% endfor %}</tbody></table></div></div>
+
+{% elif view == 'locations' %}
+<div class="card"><div class="card-header">Stores, warehouses and racks
+  <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#locModal" data-new-target="#locModal" data-title="Add location"><i class="bi bi-plus-lg me-1"></i>Add location</button></div>
+<div class="table-responsive"><table class="table table-hover"><thead><tr><th>Name</th><th>Type</th><th>Address</th><th class="text-end">Parts</th><th class="text-end">Units</th><th class="text-end">Value (cost)</th><th class="text-end">Actions</th></tr></thead><tbody>
+{% for l in rows %}<tr><td class="fw-semibold">{{ l.name }}</td><td><span class="badge-soft b-info">{{ l.type }}</span></td><td class="small text-muted">{{ l.address or '' }}</td><td class="text-end">{{ l.parts_count }}</td><td class="text-end">{{ l.units }}</td><td class="text-end">{{ l.value|inr }}</td>
+  <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('inventory', view='ledger', location=l.id) }}" title="Ledger"><i class="bi bi-journal-text"></i></a>
+    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#locModal" data-edit-target="#locModal" data-title="Edit location" data-id="{{ l.id }}" data-name="{{ l.name }}" data-type="{{ l.type }}" data-address="{{ l.address or '' }}"><i class="bi bi-pencil"></i></button>
+    {% if g.user.role != 'staff' %}{{ delete_btn(url_for('location_delete', lid=l.id), 'Delete location ' ~ l.name ~ '?') }}{% endif %}</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="modal fade" id="locModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form class="modal-content needs-validation" method="post" action="{{ url_for('location_save') }}" novalidate>{{ csrf_input() }}<input type="hidden" name="id">
+  <div class="modal-header"><h5 class="modal-title">Add location</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body vstack gap-3"><div><label class="form-label">Name *</label><input class="form-control" name="name" required maxlength="80"></div>
+    <div><label class="form-label">Type</label><select class="form-select" name="type" data-default="Store"><option>Store</option><option>Warehouse</option><option>Rack</option></select></div>
+    <div><label class="form-label">Address</label><input class="form-control" name="address" maxlength="200"></div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div></form></div></div>
+
+{% elif view == 'transfers' %}
+<div class="row g-3"><div class="col-lg-4"><div class="card"><div class="card-header">New stock transfer</div>
+  <form method="post" action="{{ url_for('stock_transfer') }}" class="card-body vstack gap-3 needs-validation" novalidate>{{ csrf_input() }}
+    <div><label class="form-label">Part *</label><select class="form-select" name="part_id" required><option value="">Choose part...</option>{% for p in parts_all %}<option value="{{ p.id }}">{{ p.part_no }} - {{ p.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">From *</label><select class="form-select" name="from_loc" required>{% for l in locations %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">To *</label><select class="form-select" name="to_loc" required>{% for l in locations %}<option value="{{ l.id }}" {{ 'selected' if loop.index == 2 }}>{{ l.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">Quantity *</label><input type="number" min="1" class="form-control" name="qty" required></div>
+    <div><label class="form-label">Notes</label><input class="form-control" name="notes" maxlength="120"></div>
+    <button class="btn btn-primary"><i class="bi bi-arrow-left-right me-1"></i>Transfer stock</button></form></div></div>
+  <div class="col-lg-8"><div class="card"><div class="card-header">Transfer history</div><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Date</th><th>Ref</th><th>Part</th><th class="text-end">Qty</th><th>From</th><th>To</th><th>By</th></tr></thead><tbody>
+    {% for t in rows %}<tr><td class="small text-nowrap">{{ t.created_at|dmyhm }}</td><td class="small">{{ t.ref }}</td><td>{{ t.pname }}<div class="small text-muted">{{ t.part_no }}</div></td><td class="text-end fw-bold">{{ t.qty }}</td><td>{{ t.from_loc }}</td><td>{{ t.to_loc }}</td><td class="small">{{ t.uname or '' }}</td></tr>
+    {% else %}<tr><td colspan="7">{{ empty('No transfers yet.', 'arrow-left-right') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div></div></div>
+{% endif %}
+{% if view in ('stock','low','out','dead') %}{{ stock_modal(locations, request.full_path) }}{% endif %}
+{% endblock %}

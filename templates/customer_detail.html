@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4 vstack gap-3"><div class="card"><div class="card-body">
+    <h2 class="h5">{{ c.name }}</h2><div class="small vstack gap-1"><div><i class="bi bi-telephone me-2"></i>{{ c.phone or '-' }}</div><div><i class="bi bi-envelope me-2"></i>{{ c.email or '-' }}</div>
+      <div><i class="bi bi-geo-alt me-2"></i>{{ c.address or '-' }}</div><div><i class="bi bi-bicycle me-2"></i>{{ c.bike_owned or '-' }}</div></div>
+    <div class="row g-2 mt-2 text-center"><div class="col-4"><div class="panel py-2"><div class="small text-muted">Bills</div><b>{{ c.bills }}</b></div></div><div class="col-4"><div class="panel py-2"><div class="small text-muted">Spent</div><b>{{ c.spent|inr(0) }}</b></div></div>
+      <div class="col-4"><div class="panel py-2"><div class="small text-muted">Due</div><b class="{{ 'text-danger' if c.outstanding > 0.005 }}">{{ c.outstanding|inr(0) }}</b></div></div></div>
+    <a class="btn btn-primary w-100 mt-3" href="{{ url_for('sale_new', customer_id=c.id) }}"><i class="bi bi-receipt me-1"></i>New bill</a></div></div>
+    {% if c.outstanding > 0.005 %}<div class="card"><div class="card-header">Collect outstanding</div><form method="post" action="{{ url_for('customer_collect', cid=c.id) }}" class="card-body input-group needs-validation" novalidate>{{ csrf_input() }}
+      <input type="number" step="0.01" min="0.01" max="{{ '%.2f'|format(c.outstanding) }}" name="amount" class="form-control" placeholder="Amount" required><button class="btn btn-success">Collect</button></form></div>{% endif %}</div>
+  <div class="col-lg-8"><div class="card"><div class="card-header">Purchase history <a class="btn btn-sm btn-light" href="{{ url_for('customers') }}">Back</a></div><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Invoice</th><th>Date</th><th class="text-end">Net</th><th class="text-end">Paid</th><th>Status</th><th></th></tr></thead><tbody>
+    {% for s in sales %}<tr><td class="fw-semibold">{{ s.invoice_no }}</td><td>{{ s.sale_date|dmy }}</td><td class="text-end">{{ (s.total - s.returned_amount)|inr }}</td><td class="text-end">{{ s.paid_amount|inr }}</td>
+      <td><span class="badge-soft {{ {'completed':'b-ok','partial_return':'b-low','returned':'b-out'}[s.status] }}">{{ s.status|replace('_',' ') }}</span></td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('sale_detail', sid=s.id) }}">Open</a></td></tr>
+    {% else %}<tr><td colspan="6" class="text-center text-muted py-4">No purchases yet.</td></tr>{% endfor %}</tbody></table></div></div></div>
+</div>
+{% endblock %}

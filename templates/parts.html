@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import pager, stock_badge, stock_modal, empty %}
+{% block title %}Parts{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body">
+  <form method="get" class="row g-2 filters align-items-end">
+    <div class="col-12 col-md-4"><label class="form-label small mb-1">Search</label><input class="form-control" name="q" value="{{ a.get('q','') }}" placeholder="Name, part no or barcode"></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-1">Category</label><select class="form-select" name="category"><option value="">All</option>
+      {% for c in categories %}<option value="{{ c.id }}" {{ 'selected' if a.get('category')|string == c.id|string }}>{{ c.name }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-1">Brand</label><select class="form-select" name="brand"><option value="">All</option>
+      {% for b in brands %}<option value="{{ b.id }}" {{ 'selected' if a.get('brand')|string == b.id|string }}>{{ b.name }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-1">Fits bike</label><select class="form-select" name="bike"><option value="">Any</option>
+      {% for b in bikes %}<option value="{{ b.id }}" {{ 'selected' if a.get('bike')|string == b.id|string }}>{{ b.label }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-1">Stock</label><select class="form-select" name="status"><option value="">All</option>
+      <option value="ok" {{ 'selected' if a.get('status')=='ok' }}>In stock</option><option value="low" {{ 'selected' if a.get('status')=='low' }}>Low</option><option value="out" {{ 'selected' if a.get('status')=='out' }}>Out of stock</option></select></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-1">Sort by</label><select class="form-select" name="sort">
+      {% for k, v in [('name','Name'),('part_no','Part no'),('price','Price'),('stock','Stock'),('category','Category'),('brand','Brand'),('new','Newest')] %}<option value="{{ k }}" {{ 'selected' if a.get('sort','name')==k }}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-1">Order</label><select class="form-select" name="dir"><option value="asc">Ascending</option><option value="desc" {{ 'selected' if a.get('dir')=='desc' }}>Descending</option></select></div>
+    <div class="col-12 col-md-8 d-flex gap-2 flex-wrap justify-content-md-end">
+      <button class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+      <a class="btn btn-light" href="{{ url_for('parts_list') }}">Reset</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('parts_export', **a) }}"><i class="bi bi-filetype-csv me-1"></i>Export CSV</a>
+      <a class="btn btn-success" href="{{ url_for('part_new') }}"><i class="bi bi-plus-lg me-1"></i>Add part</a>
+    </div>
+  </form></div></div>
+
+<form method="get" action="{{ url_for('part_labels') }}" target="_blank">
+<div class="card">
+  <div class="card-header"><span>Parts <small class="text-muted fw-normal">({{ pg.total }})</small></span>
+    <span class="d-flex gap-2 align-items-center"><input type="number" name="copies" value="1" min="1" max="50" class="form-control form-control-sm" style="width:70px" title="Labels per part">
+      <button class="btn btn-sm btn-outline-primary"><i class="bi bi-upc me-1"></i>Print labels</button></span></div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead><tr><th style="width:30px"><input type="checkbox" class="form-check-input" id="selAll" aria-label="Select all"></th><th>Part</th><th>Category</th><th>Brand</th><th class="text-end">Cost</th><th class="text-end">Price</th><th>GST</th><th>Stock</th><th>Rack</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for p in parts %}
+      <tr>
+        <td><input type="checkbox" class="form-check-input sel" name="ids" value="{{ p.id }}" aria-label="Select {{ p.name }}"></td>
+        <td><div class="d-flex align-items-center gap-2">
+          {% if p.image %}<img class="thumb" src="{{ img_url(p.image) }}" alt="">{% else %}<span class="thumb"><i class="bi bi-gear"></i></span>{% endif %}
+          <div><a class="fw-semibold text-decoration-none" href="{{ url_for('part_detail', pid=p.id) }}">{{ p.name }}</a><div class="small text-muted">{{ p.part_no }} &middot; {{ p.barcode }}</div></div></div></td>
+        <td>{{ p.category }}</td><td>{{ p.brand or '-' }}</td>
+        <td class="text-end">{{ p.cost_price|inr }}</td><td class="text-end fw-semibold">{{ p.selling_price|inr }}</td><td>{{ '%g'|format(p.gst_percent) }}%</td>
+        <td>{{ stock_badge(p.total_qty, p.reorder_level) }}</td><td>{{ p.rack or '-' }}</td>
+        <td class="text-end text-nowrap">
+          <button type="button" class="btn btn-sm btn-outline-primary" title="Update stock" onclick="openStockModal({{ p.id }}, {{ p.name|tojson|forceescape }})"><i class="bi bi-box-seam"></i></button>
+          <a class="btn btn-sm btn-outline-secondary" title="Edit" href="{{ url_for('part_edit', pid=p.id) }}"><i class="bi bi-pencil"></i></a>
+        </td>
+      </tr>
+      {% else %}<tr><td colspan="10">{{ empty('No parts match your filters.', 'search') }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pager(pg) }}
+</div>
+</form>
+{{ stock_modal(locations, request.full_path) }}
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('selAll').addEventListener('change',function(){document.querySelectorAll('.sel').forEach(function(c){c.checked=this.checked}.bind(this));});
+</script>
+{% endblock %}

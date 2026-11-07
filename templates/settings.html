@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import delete_btn %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+{% set is_admin = g.user.role == 'admin' %}
+<ul class="nav nav-pills mb-3 gap-1" id="setTabs" role="tablist">
+  {% for k, l, i in [('shop','Shop profile','shop'),('tax','Tax & thresholds','percent'),('categories','Categories','tags'),('brands','Brands','bookmark-star'),('users','Users','people'),('backup','Backup / Restore','database')] %}
+  <li class="nav-item"><button class="nav-link {{ 'active' if loop.first }}" data-bs-toggle="pill" data-bs-target="#tab-{{ k }}" type="button"><i class="bi bi-{{ i }} me-1"></i>{{ l }}</button></li>{% endfor %}
+</ul>
+{% if not is_admin %}<div class="alert alert-info">You are signed in as <b>{{ g.user.role }}</b>. Only administrators can change shop, tax, user and backup settings.</div>{% endif %}
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="tab-shop"><div class="card" style="max-width:760px"><div class="card-header">Shop profile (printed on invoices)</div>
+    <form method="post" action="{{ url_for('settings_shop') }}" class="card-body row g-3 needs-validation" novalidate>{{ csrf_input() }}
+      <div class="col-md-6"><label class="form-label">Shop name *</label><input class="form-control" name="shop_name" value="{{ st.shop_name }}" required></div>
+      <div class="col-md-6"><label class="form-label">GST number</label><input class="form-control" name="gst_number" value="{{ st.gst_number }}" maxlength="15" pattern="[0-9A-Za-z]{15}"></div>
+      <div class="col-12"><label class="form-label">Address</label><input class="form-control" name="shop_address" value="{{ st.shop_address }}"></div>
+      <div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" name="shop_phone" value="{{ st.shop_phone }}"></div>
+      <div class="col-md-6"><label class="form-label">Email</label><input type="email" class="form-control" name="shop_email" value="{{ st.shop_email }}"></div>
+      <div class="col-md-6"><label class="form-label">Invoice prefix</label><input class="form-control" name="invoice_prefix" value="{{ st.invoice_prefix }}" maxlength="8"></div>
+      <div class="col-md-6"><label class="form-label">Purchase order prefix</label><input class="form-control" name="po_prefix" value="{{ st.po_prefix }}" maxlength="8"></div>
+      <div class="col-12"><label class="form-label">Invoice footer note</label><input class="form-control" name="invoice_footer" value="{{ st.invoice_footer }}"></div>
+      <div class="col-12"><button class="btn btn-primary" {{ 'disabled' if not is_admin }}>Save profile</button></div></form></div></div>
+
+  <div class="tab-pane fade" id="tab-tax"><div class="card" style="max-width:640px"><div class="card-header">GST rates and low-stock threshold</div>
+    <form method="post" action="{{ url_for('settings_tax') }}" class="card-body vstack gap-3 needs-validation" novalidate>{{ csrf_input() }}
+      <div><label class="form-label">GST rates (comma separated, %)</label><input class="form-control" name="gst_rates" value="{{ st.gst_rates }}" required><div class="form-text">Shown as suggestions when adding parts.</div></div>
+      <div><label class="form-label">Default low-stock (reorder) level for new parts</label><input type="number" min="0" class="form-control" name="low_stock_default" value="{{ st.low_stock_default }}" required></div>
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="apply_all" id="applyAll"><label class="form-check-label" for="applyAll">Also set this reorder level on <b>all existing parts</b></label></div>
+      <div><button class="btn btn-primary" {{ 'disabled' if not is_admin }}>Save</button></div></form></div></div>
+
+  {% for kind, items, title in [('categories', categories, 'Category'), ('brands', brands, 'Brand')] %}
+  <div class="tab-pane fade" id="tab-{{ kind }}"><div class="card" style="max-width:640px"><div class="card-header">{{ title }}s</div>
+    <form method="post" action="{{ url_for('list_save', kind=kind) }}" class="card-body d-flex gap-2 border-bottom needs-validation" novalidate>{{ csrf_input() }}
+      <input class="form-control" name="name" placeholder="New {{ title|lower }} name" required maxlength="60"><button class="btn btn-success flex-none">Add</button></form>
+    <ul class="list-group list-group-flush">{% for it in items %}<li class="list-group-item d-flex gap-2 align-items-center">
+      <form method="post" action="{{ url_for('list_save', kind=kind) }}" class="d-flex gap-2 flex-fill">{{ csrf_input() }}<input type="hidden" name="id" value="{{ it.id }}">
+        <input class="form-control form-control-sm" name="name" value="{{ it.name }}" required maxlength="60" aria-label="{{ title }} name"><button class="btn btn-sm btn-outline-primary">Rename</button></form>
+      <span class="badge-soft b-info">{{ it.n }} parts</span>{{ delete_btn(url_for('list_delete', kind=kind, lid=it.id), 'Delete ' ~ it.name ~ '?') }}</li>{% endfor %}</ul></div></div>
+  {% endfor %}
+
+  <div class="tab-pane fade" id="tab-users"><div class="row g-3"><div class="col-lg-8"><div class="card"><div class="card-header">User management</div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>User</th><th>Role</th><th>Active</th><th>New password</th><th></th></tr></thead><tbody>
+    {% for u in users %}<tr><form method="post" action="{{ url_for('user_update', uid=u.id) }}" id="uf{{ u.id }}">{{ csrf_input() }}</form>
+      <td><div class="fw-semibold">{{ u.full_name }}</div><div class="small text-muted">{{ u.username }} &middot; joined {{ u.created_at|dmy }}</div></td>
+      <td><select class="form-select form-select-sm" name="role" form="uf{{ u.id }}" {{ 'disabled' if not is_admin }}>{% for r in ['admin','manager','staff'] %}<option {{ 'selected' if u.role == r }}>{{ r }}</option>{% endfor %}</select></td>
+      <td><input type="checkbox" class="form-check-input" name="active" value="1" form="uf{{ u.id }}" {{ 'checked' if u.active }} {{ 'disabled' if not is_admin }}></td>
+      <td><input type="password" class="form-control form-control-sm" name="new_password" form="uf{{ u.id }}" placeholder="Leave empty" minlength="6" autocomplete="new-password" {{ 'disabled' if not is_admin }}></td>
+      <td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary" form="uf{{ u.id }}" {{ 'disabled' if not is_admin }}>Save</button>
+        {% if is_admin and u.id != g.user.id %}{{ delete_btn(url_for('user_delete', uid=u.id), 'Delete user ' ~ u.username ~ '?') }}{% endif %}</td></tr>{% endfor %}</tbody></table></div></div></div>
+    <div class="col-lg-4"><div class="card"><div class="card-header">Add user</div><form method="post" action="{{ url_for('user_add') }}" class="card-body vstack gap-2 needs-validation" novalidate>{{ csrf_input() }}
+      <input class="form-control" name="full_name" placeholder="Full name" required><input class="form-control" name="username" placeholder="User ID" required pattern="[A-Za-z0-9_.]{3,30}">
+      <input type="email" class="form-control" name="email" placeholder="Email (optional)"><input type="password" class="form-control" name="password" placeholder="Password (min 6)" required minlength="6" autocomplete="new-password">
+      <select class="form-select" name="role"><option>staff</option><option>manager</option><option>admin</option></select><button class="btn btn-success" {{ 'disabled' if not is_admin }}>Add user</button></form></div></div></div></div>
+
+  <div class="tab-pane fade" id="tab-backup"><div class="row g-3" style="max-width:900px">
+    <div class="col-md-6"><div class="card h-100"><div class="card-header">Backup database</div><div class="card-body"><p class="text-muted">Download a consistent copy of <code>mspms.db</code>. Keep it somewhere safe.</p>
+      <a class="btn btn-primary {{ 'disabled' if not is_admin }}" href="{{ url_for('backup_db') }}"><i class="bi bi-download me-1"></i>Download backup</a></div></div></div>
+    <div class="col-md-6"><div class="card h-100"><div class="card-header">Restore database</div><form method="post" action="{{ url_for('restore_db') }}" enctype="multipart/form-data" class="card-body vstack gap-2 needs-validation" novalidate data-confirm="Restoring replaces ALL current data with the backup. A safety copy (mspms.db.before_restore) is kept. Continue?">{{ csrf_input() }}
+      <p class="text-muted mb-1">Upload a <code>.db</code> backup made by MSPMS. You will be logged out afterwards.</p>
+      <input type="file" class="form-control" name="backup" accept=".db" required><button class="btn btn-danger" {{ 'disabled' if not is_admin }}><i class="bi bi-upload me-1"></i>Restore</button></form></div></div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+if(location.hash){var b=document.querySelector('[data-bs-target="#tab-'+location.hash.slice(1)+'"]');if(b)bootstrap.Tab.getOrCreateInstance(b).show();}
+</script>
+{% endblock %}

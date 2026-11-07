@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import pager, delete_btn, empty %}
+{% block title %}Customers{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2 align-items-end">
+  <div class="col-md-6"><input class="form-control" name="q" value="{{ a.get('q','') }}" placeholder="Search name, phone or bike"></div>
+  <div class="col-md-6 d-flex gap-2 justify-content-md-end"><button class="btn btn-primary">Search</button><a class="btn btn-light" href="{{ url_for('customers') }}">Reset</a>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#custModal" data-new-target="#custModal" data-title="Add customer"><i class="bi bi-plus-lg me-1"></i>Add customer</button></div></form></div></div>
+<div class="card"><div class="table-responsive"><table class="table table-hover"><thead><tr><th>Name</th><th>Phone</th><th>Bike owned</th><th class="text-end">Bills</th><th class="text-end">Total spent</th><th class="text-end">Outstanding</th><th class="text-end">Actions</th></tr></thead><tbody>
+{% for c in rows %}<tr><td><a class="fw-semibold text-decoration-none" href="{{ url_for('customer_detail', cid=c.id) }}">{{ c.name }}</a><div class="small text-muted">{{ c.email or '' }}</div></td><td>{{ c.phone or '-' }}</td><td>{{ c.bike_owned or '-' }}</td>
+  <td class="text-end">{{ c.bills }}</td><td class="text-end">{{ c.spent|inr }}</td><td class="text-end {{ 'text-danger fw-semibold' if c.outstanding > 0.005 }}">{{ c.outstanding|inr }}</td>
+  <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('sale_new', customer_id=c.id) }}" title="New bill"><i class="bi bi-receipt"></i></a>
+    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#custModal" data-edit-target="#custModal" data-title="Edit customer" data-id="{{ c.id }}" data-name="{{ c.name }}" data-phone="{{ c.phone or '' }}" data-email="{{ c.email or '' }}" data-address="{{ c.address or '' }}" data-bike_owned="{{ c.bike_owned or '' }}"><i class="bi bi-pencil"></i></button>
+    {% if g.user.role != 'staff' %}{{ delete_btn(url_for('customer_delete', cid=c.id), 'Delete ' ~ c.name ~ '? Past bills are kept as walk-in sales.') }}{% endif %}</td></tr>
+{% else %}<tr><td colspan="7">{{ empty('No customers found.', 'people') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+<div class="modal fade" id="custModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form class="modal-content needs-validation" method="post" action="{{ url_for('customer_save') }}" novalidate>{{ csrf_input() }}<input type="hidden" name="id">
+  <div class="modal-header"><h5 class="modal-title">Add customer</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body row g-3"><div class="col-12"><label class="form-label">Name *</label><input class="form-control" name="name" required minlength="2" maxlength="80"></div>
+    <div class="col-6"><label class="form-label">Phone</label><input class="form-control" name="phone" pattern="[+0-9 \-()]{7,20}"></div><div class="col-6"><label class="form-label">Email</label><input type="email" class="form-control" name="email"></div>
+    <div class="col-12"><label class="form-label">Bike owned</label><input class="form-control" name="bike_owned" placeholder="e.g. Honda Activa 6G" maxlength="80"></div>
+    <div class="col-12"><label class="form-label">Address</label><input class="form-control" name="address" maxlength="200"></div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div></form></div></div>
+{% endblock %}

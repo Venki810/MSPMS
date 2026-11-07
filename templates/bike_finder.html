@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Find parts for my bike{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body row g-3 align-items-end">
+  <div class="col-md-4"><label class="form-label">Brand</label><select class="form-select" id="fBrand"><option value="">All brands</option>
+    {% for b in bikes|map(attribute='brand')|unique %}<option>{{ b }}</option>{% endfor %}</select></div>
+  <div class="col-md-5"><label class="form-label">Your bike model</label><select class="form-select" id="fBike"><option value="">Choose a model...</option>
+    {% for b in bikes %}<option value="{{ b.id }}" data-brand="{{ b.brand }}">{{ b.brand }} {{ b.model }} ({{ b.variant }}, {{ b.year_from }}-{{ b.year_to }})</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label">Filter results</label><input class="form-control" id="fText" placeholder="e.g. brake"></div></div></div>
+<div class="card"><div class="card-header">Matching parts <span class="badge-soft b-info" id="fCount">0</span></div>
+  <div class="table-responsive"><table class="table table-hover"><thead><tr><th>Part</th><th>Category</th><th class="text-end">Price</th><th>Stock</th><th></th></tr></thead><tbody id="fBody">
+    <tr><td colspan="5" class="empty"><i class="bi bi-bicycle"></i>Pick your bike to see every part that fits it.</td></tr></tbody></table></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+var rows=[],bike=document.getElementById('fBike'),brand=document.getElementById('fBrand'),txt=document.getElementById('fText'),body=document.getElementById('fBody');
+brand.addEventListener('change',function(){Array.prototype.forEach.call(bike.options,function(o){if(o.value)o.hidden=brand.value&&o.dataset.brand!==brand.value;});bike.value='';});
+bike.addEventListener('change',function(){if(!bike.value){body.innerHTML='';return;}MSPMS.getJSON('/api/bike/'+bike.value+'/parts').then(function(r){rows=r;draw();});});
+txt.addEventListener('input',draw);
+function draw(){var v=txt.value.toLowerCase(),f=rows.filter(function(p){return (p.name+p.part_no+p.category).toLowerCase().indexOf(v)>=0;});
+ document.getElementById('fCount').textContent=f.length;
+ body.innerHTML=f.length?f.map(function(p){var st=p.total_qty<=0?'<span class="badge-soft b-out">Out of stock</span>':p.total_qty<=p.reorder_level?'<span class="badge-soft b-low">Low &middot; '+p.total_qty+'</span>':'<span class="badge-soft b-ok">'+p.total_qty+' in stock</span>';
+ return '<tr><td><a class="fw-semibold text-decoration-none" href="'+p.url+'">'+MSPMS.esc(p.name)+'</a><div class="small text-muted">'+MSPMS.esc(p.part_no)+'</div></td><td>'+MSPMS.esc(p.category)+'</td><td class="text-end">'+MSPMS.inr(p.price)+'</td><td>'+st+'</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/sales/new?part_id='+p.id+'">Add to sale</a></td></tr>';}).join(''):'<tr><td colspan="5" class="text-center text-muted py-4">No matching parts.</td></tr>';}
+</script>
+{% endblock %}

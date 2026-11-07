@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import pager, empty %}
+{% block title %}Purchases{% endblock %}
+{% block content %}
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label small mb-1">PO no / supplier</label><input class="form-control" name="q" value="{{ a.get('q','') }}"></div>
+  <div class="col-md-2"><label class="form-label small mb-1">Supplier</label><select class="form-select" name="supplier"><option value="">All</option>{% for s in suppliers %}<option value="{{ s.id }}" {{ 'selected' if a.get('supplier')|string == s.id|string }}>{{ s.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1">Status</label><select class="form-select" name="status"><option value="">All</option>{% for s in ['ordered','received','cancelled'] %}<option {{ 'selected' if a.get('status') == s }}>{{ s }}</option>{% endfor %}</select></div>
+  <div class="col-md-2"><label class="form-label small mb-1">Payment</label><select class="form-select" name="payment"><option value="">All</option>{% for s in ['unpaid','partial','paid'] %}<option {{ 'selected' if a.get('payment') == s }}>{{ s }}</option>{% endfor %}</select></div>
+  <div class="col-md-3 d-flex gap-2 justify-content-md-end"><button class="btn btn-primary">Filter</button><a class="btn btn-light" href="{{ url_for('purchases') }}">Reset</a><a class="btn btn-success" href="{{ url_for('purchase_new') }}"><i class="bi bi-plus-lg me-1"></i>New PO</a></div></form></div></div>
+<div class="card"><div class="card-header">Purchase history</div><div class="table-responsive"><table class="table table-hover"><thead><tr><th>PO no</th><th>Date</th><th>Supplier</th><th>Receive at</th><th class="text-end">Items</th><th class="text-end">Total</th><th>Status</th><th>Payment</th><th></th></tr></thead><tbody>
+{% for p in rows %}<tr><td class="fw-semibold">{{ p.po_no }}</td><td>{{ p.order_date|dmy }}</td><td>{{ p.supplier }}</td><td class="small">{{ p.location }}</td><td class="text-end">{{ p.n_items }}</td><td class="text-end">{{ p.total|inr }}</td>
+  <td><span class="badge-soft {{ {'ordered':'b-low','received':'b-ok','cancelled':'b-gray'}[p.status] }}">{{ p.status }}</span></td>
+  <td><span class="badge-soft {{ {'unpaid':'b-out','partial':'b-low','paid':'b-ok'}[p.payment_status] }}">{{ p.payment_status }}</span></td>
+  <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('purchase_detail', pid=p.id) }}">Open</a></td></tr>
+{% else %}<tr><td colspan="9">{{ empty('No purchase orders found.', 'bag') }}</td></tr>{% endfor %}</tbody></table></div>{{ pager(pg) }}</div>
+{% endblock %}
